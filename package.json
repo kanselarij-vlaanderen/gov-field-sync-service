@@ -1,0 +1,20 @@
+{
+  "name": "gov-field-sync-service",
+  "version": "1.0.0",
+  "description": "Microservice to keep the 'Dossier' up to date when adding government fields to connected 'Procedurestappen'",
+  "dependencies": {
+    "@lblod/mu-auth-sudo": "^0.2.0",
+    "body-parser": "^1.19.0",
+    "lodash.groupby": "^4.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kanselarij-vlaanderen/gov-field-sync-service.git"
+  },
+  "author": "redpencil.io",
+  "license": "MIT"
+}
