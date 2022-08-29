@@ -25,7 +25,9 @@ app.post('/delta', bodyParser.json(), async (req, res) => {
 
   for (const subjectUri of subjectUris) {
     const _case = await caseFromSubjectUri(subjectUri, GRAPH);
-    caseUris.add(_case);
+    if (_case) {
+      caseUris.add(_case);
+    }
   }
 
   // process case by case, updating the collection on case
