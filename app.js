@@ -1,47 +1,36 @@
 import { app, errorHandler } from 'mu';
 import bodyParser from 'body-parser';
 
-import * as deltaUtil from './lib/delta-util';
-import { subjectIsTypeInGraph } from './util-queries';
-import { syncObjectsForSubjectInGraph, unsyncObjectsForSubjectInGraph } from './case-field-queries';
-import { GRAPH, UPDATEABLE_PREDICATES, WATCH_TYPES } from './config';
+import { reduceChangesets } from './lib/delta-util'
+import { caseFromSubjectUri } from './lib/util-queries';
+import { syncFieldsForCaseInGraph } from './lib/case-field-queries';
+import { GRAPH } from './config';
 
 app.post('/delta', bodyParser.json(), async (req, res) => {
   res.status(202).end();
-  const insertionDeltas = deltaUtil.insertionDeltas(req.body);
-  const deletionDeltas = deltaUtil.deletionDeltas(req.body);
-  if (insertionDeltas.length || deletionDeltas.length) {
-    console.debug(`Received deltas (${insertionDeltas.length + deletionDeltas.length} total)`);
+  const deltas = req.body;
+  // could be cases or subcases
+  if (deltas.length) {
+    console.debug(`Received deltas (${deltas.length} total)`);
   } else {
     return; // Empty delta message received on startup?
   }
 
-  // UPDATES in group path (entities need graph-moving)
-  const insertPathUpdates = deltaUtil.filterByPredicate(insertionDeltas, UPDATEABLE_PREDICATES);
-  if (insertPathUpdates.length) {
-    console.log(`Received insert deltas for ${insertPathUpdates.length} field-relations that need updates in their case as well.`);
-  }
-  for (const d of insertPathUpdates) {
-    const subjectUri = d.subject.value;
-    const watchedType = WATCH_TYPES.find(t => t.predicateToObject.uri === d.predicate.value);
-    const subjectType = watchedType.type;
-    if (await subjectIsTypeInGraph(subjectUri, GRAPH, [subjectType])) {
-      await syncObjectsForSubjectInGraph(d.subject.value, subjectType, GRAPH);
-    }
-  }
-  const deletePathUpdates = deltaUtil.filterByPredicate(deletionDeltas, UPDATEABLE_PREDICATES);
+  // get unique set of subject URI's from insert and delete with correct predicate (should be subcase)
+  // * note, these can still contain cases unless we apply a string filter on subject
+  const subjectUris = reduceChangesets(deltas);
 
-  // deletes
-  if (deletePathUpdates.length) {
-    console.log(`Received delete deltas for ${deletePathUpdates.length} field-relations that need updates in their case as well.`);
+  const caseUris = new Set();
+  // get unique set of cases connected
+  // for each, do the collection update
+  for (const subjectUri of subjectUris) {
+    const _case = await caseFromSubjectUri(subjectUri, GRAPH);
+    caseUris.add(_case);
   }
-  for (const d of deletePathUpdates) {
-    const subjectUri = d.subject.value;
-    const watchedType = WATCH_TYPES.find(t => t.predicateToObject.uri === d.predicate.value);
-    const subjectType = watchedType.type;
-    if (await subjectIsTypeInGraph(subjectUri, GRAPH, [subjectType])) {
-      await unsyncObjectsForSubjectInGraph(d.subject.value, subjectType, GRAPH);
-    }
+
+  for (const caseUri of caseUris) {
+    await syncFieldsForCaseInGraph(caseUri, GRAPH);
+    caseUris.delete(caseUri);
   }
 });
 
