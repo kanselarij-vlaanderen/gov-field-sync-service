@@ -16,18 +16,19 @@ app.post('/delta', bodyParser.json(), async (req, res) => {
     return; // Empty delta message received on startup?
   }
 
-  // get unique set of subject URI's from insert and delete with correct predicate (should be subcase)
+  // Unique set of subject URI's from insert and delete with correct predicate (should be subcase)
   // * note, these can still contain cases unless we apply a string filter on subject
   const subjectUris = reduceChangesets(deltas);
 
+  // unique set of cases connected
   const caseUris = new Set();
-  // get unique set of cases connected
-  // for each, do the collection update
+
   for (const subjectUri of subjectUris) {
     const _case = await caseFromSubjectUri(subjectUri, GRAPH);
     caseUris.add(_case);
   }
 
+  // process case by case, updating the collection on case
   for (const caseUri of caseUris) {
     await syncFieldsForCaseInGraph(caseUri, GRAPH);
     caseUris.delete(caseUri);
