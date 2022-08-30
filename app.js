@@ -1,7 +1,7 @@
 import { app, errorHandler } from 'mu';
 import bodyParser from 'body-parser';
 
-import { reduceChangesets } from './lib/delta-util'
+import { reduceChangesets } from './lib/delta-util';
 import { caseFromSubjectUri } from './lib/util-queries';
 import { syncFieldsForCaseInGraph } from './lib/case-field-queries';
 
