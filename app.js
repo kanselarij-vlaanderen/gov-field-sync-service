@@ -4,7 +4,6 @@ import bodyParser from 'body-parser';
 import { reduceChangesets } from './lib/delta-util'
 import { caseFromSubjectUri } from './lib/util-queries';
 import { syncFieldsForCaseInGraph } from './lib/case-field-queries';
-import { GRAPH } from './config';
 
 app.post('/delta', bodyParser.json(), async (req, res) => {
   res.status(202).end();
@@ -24,7 +23,7 @@ app.post('/delta', bodyParser.json(), async (req, res) => {
   const caseUris = new Set();
 
   for (const subjectUri of subjectUris) {
-    const _case = await caseFromSubjectUri(subjectUri, GRAPH);
+    const _case = await caseFromSubjectUri(subjectUri);
     if (_case) {
       caseUris.add(_case);
     }
@@ -32,7 +31,7 @@ app.post('/delta', bodyParser.json(), async (req, res) => {
 
   // process case by case, updating the collection on case
   for (const caseUri of caseUris) {
-    await syncFieldsForCaseInGraph(caseUri, GRAPH);
+    await syncFieldsForCaseInGraph(caseUri);
     caseUris.delete(caseUri);
   }
 });
