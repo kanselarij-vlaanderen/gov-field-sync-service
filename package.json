@@ -1,6 +1,6 @@
 {
   "name": "gov-field-sync-service",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Microservice to keep the 'Dossier' up to date when adding government fields to connected 'Procedurestappen'",
   "dependencies": {
     "@lblod/mu-auth-sudo": "^0.2.0"
