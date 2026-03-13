@@ -5,7 +5,9 @@ import { reduceChangesets } from './lib/delta-util';
 import { decisionmakingFlowFromSubjectUri } from './lib/util-queries';
 import { syncFieldsForDecisionmakingFlowInGraph } from './lib/decisionmaking-flow-field-queries';
 
-app.post('/delta', bodyParser.json(), async (req, res) => {
+const ALLOWED_DELTA_SIZE = process.env.ALLOWED_DELTA_SIZE || '100mb';
+
+app.post('/delta', bodyParser.json({ limit: ALLOWED_DELTA_SIZE }), async (req, res) => {
   res.status(202).end();
   const deltas = req.body;
   // could be decisionmakingFlow or subcases
