@@ -1,11 +1,37 @@
 import { app, errorHandler } from 'mu';
 import bodyParser from 'body-parser';
+import cron from 'node-cron';
 
 import { reduceChangesets } from './lib/delta-util';
 import { decisionmakingFlowFromSubjectUri } from './lib/util-queries';
-import { syncFieldsForDecisionmakingFlowInGraph } from './lib/decisionmaking-flow-field-queries';
+import { syncFieldsForDecisionmakingFlowInGraph, syncFieldsForAllDecisionmakingFlows } from './lib/decisionmaking-flow-field-queries';
 
 const ALLOWED_DELTA_SIZE = process.env.ALLOWED_DELTA_SIZE || '100mb';
+const CRON_PATTERN = process.env.CRON_PATTERN || '0 0 * * *';
+
+cron.schedule(CRON_PATTERN, async () => {
+  try {
+    console.log(`[cron] Running gov-field sync (pattern: ${CRON_PATTERN})...`);
+    await syncFieldsForAllDecisionmakingFlows();
+    console.log('[cron] Gov-field sync completed.');
+  } catch (err) {
+    console.trace(err);
+  }
+});
+
+app.post('/run', async (req, res, next) => {
+  try {
+    console.log('Running gov-field sync...');
+    await syncFieldsForAllDecisionmakingFlows();
+    console.log('Gov-field sync completed.');
+    return res.status(200).send({ message: 'Gov-field sync completed.' });
+  } catch (err) {
+    console.trace(err);
+    const error = new Error(err.message || 'Something went wrong while running gov-field sync.');
+    error.status = 500;
+    return next(error);
+  }
+});
 
 app.post('/delta', bodyParser.json({ limit: ALLOWED_DELTA_SIZE }), async (req, res) => {
   res.status(202).end();
