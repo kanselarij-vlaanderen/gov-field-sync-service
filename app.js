@@ -3,16 +3,25 @@ import bodyParser from 'body-parser';
 import cron from 'node-cron';
 
 import { reduceChangesets } from './lib/delta-util';
-import { decisionmakingFlowFromSubjectUri } from './lib/util-queries';
-import { syncFieldsForDecisionmakingFlowInGraph, syncFieldsForAllDecisionmakingFlows } from './lib/decisionmaking-flow-field-queries';
+import { decisionmakingFlowFromSubjectUri, outOfSyncDecisionmakingFlows } from './lib/util-queries';
+import { syncFieldsForDecisionmakingFlowInGraph } from './lib/decisionmaking-flow-field-queries';
 
 const ALLOWED_DELTA_SIZE = process.env.ALLOWED_DELTA_SIZE || '100mb';
 const CRON_PATTERN = process.env.CRON_PATTERN || '0 0 * * *';
 
+async function syncOutOfSyncDecisionmakingFlows () {
+  const decisionmakingFlowUris = await outOfSyncDecisionmakingFlows();
+  console.log(`Found ${decisionmakingFlowUris.length} decisionmaking flows with gov-fields out of sync with their subcases`);
+  for (const uri of decisionmakingFlowUris) {
+    await syncFieldsForDecisionmakingFlowInGraph(uri);
+  }
+  return decisionmakingFlowUris.length;
+}
+
 cron.schedule(CRON_PATTERN, async () => {
   try {
     console.log(`[cron] Running gov-field sync (pattern: ${CRON_PATTERN})...`);
-    await syncFieldsForAllDecisionmakingFlows();
+    await syncOutOfSyncDecisionmakingFlows();
     console.log('[cron] Gov-field sync completed.');
   } catch (err) {
     console.trace(err);
@@ -22,9 +31,9 @@ cron.schedule(CRON_PATTERN, async () => {
 app.post('/run', async (req, res, next) => {
   try {
     console.log('Running gov-field sync...');
-    await syncFieldsForAllDecisionmakingFlows();
+    const count = await syncOutOfSyncDecisionmakingFlows();
     console.log('Gov-field sync completed.');
-    return res.status(200).send({ message: 'Gov-field sync completed.' });
+    return res.status(200).send({ message: `Gov-field sync completed. Synced ${count} decisionmaking flows.` });
   } catch (err) {
     console.trace(err);
     const error = new Error(err.message || 'Something went wrong while running gov-field sync.');
