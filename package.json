@@ -3,7 +3,8 @@
   "version": "0.3.1",
   "description": "Microservice to keep the 'Dossier' up to date when adding government fields to connected 'Procedurestappen'",
   "dependencies": {
-    "@lblod/mu-auth-sudo": "^0.2.0"
+    "@lblod/mu-auth-sudo": "^0.2.0",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {},
   "scripts": {
